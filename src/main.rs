@@ -19,6 +19,9 @@ fn main() {
     }
 
     
-    let max_index = data.iter().enumerate().max_by_key(|(_, &value)| value).map(|(idx, _)| idx).unwrap();
-    println!("{}",data[max_index]);
+    let mut data = data.iter().enumerate().collect::<Vec<_>>();
+    data.sort_by(|a,b| a.1.cmp(b.1));
+    data.reverse();
+    
+    println!("{}",data[0..3].iter().fold(0, |acc, &x| acc + x.1));
 }
