@@ -1,6 +1,6 @@
 use std::{fs, task::Context};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 enum Moves {
     Rock = 1,
     Paper = 2,
@@ -46,6 +46,35 @@ impl Moves {
 
         score
     }
+
+    fn Get_Move_Needed(Elve_Move: Self, Score_Wanted: char) -> Self {
+        #[derive(PartialEq, Eq, PartialOrd, Ord)]
+        enum Outcome {
+            Lose,
+            Draw,
+            Win,
+        }
+        let outcome = match Score_Wanted {
+            'X' => Outcome::Lose,
+            'Y' => Outcome::Draw,
+            'Z' => Outcome::Win,
+            _ => panic!("shouldn't Hapen"),
+        };
+
+        match outcome {
+            Outcome::Lose => match Elve_Move {
+                Moves::Rock => Moves::Scissors,
+                Moves::Paper => Moves::Rock,
+                Moves::Scissors => Moves::Paper,
+            },
+            Outcome::Draw => Elve_Move,
+            Outcome::Win => match Elve_Move {
+                Moves::Rock => Moves::Paper,
+                Moves::Paper => Moves::Scissors,
+                Moves::Scissors => Moves::Rock,
+            },
+        }
+    }
 }
 
 fn main() {
@@ -53,13 +82,12 @@ fn main() {
 
     let mut score = 0;
 
-    for line in contents.lines(){
+    for line in contents.lines() {
         let Elve_move = Moves::Elve_Move(line.chars().nth(0).unwrap());
 
-        let My_move = Moves::My_Move(line.chars().nth(2).unwrap());
+        let My_move = Moves::Get_Move_Needed(Elve_move, line.chars().nth(2).unwrap());
 
-        score+= Moves::Calcluate_Score(Elve_move, My_move) as i64; 
-
+        score += Moves::Calcluate_Score(Elve_move, My_move) as i64;
     }
 
     println!("{score}");
