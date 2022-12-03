@@ -1,4 +1,5 @@
 use std::{fs, collections::HashSet};
+use itertools::Itertools;
 
 fn Convert_Char_To_Priorities(ch: char)-> u32{
     if 'a' <= ch && ch <= 'z'{
@@ -13,15 +14,13 @@ fn main() {
 
     let mut sum = 0;
 
-    'outer_loop: for line in contents.lines() {
-        let first_half = &line[0..line.len()/2];
-        let second_half = &line[line.len()/2..line.len()];
-        let mut first_half_set = HashSet::new();
-        for ch in first_half.chars(){
-            first_half_set.insert(ch);
-        }
-        for ch in second_half.chars(){
-            if first_half_set.contains(&ch){
+    'outer_loop: for ch in &contents.lines().chunks(3) {
+        let (first_line,second_line,thrid_line) = ch.collect_tuple().unwrap();
+        let first_line_set = HashSet::<_>::from_iter(first_line.to_string().chars());
+        let second_line_set = HashSet::<_>::from_iter(second_line.chars());
+
+        for ch in thrid_line.chars(){
+            if first_line_set.contains(&ch) && second_line_set.contains(&ch){
                 sum += Convert_Char_To_Priorities(ch);
                 continue 'outer_loop; 
             }
