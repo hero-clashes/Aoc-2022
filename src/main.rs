@@ -7,11 +7,11 @@ fn range_included(
     second_range: std::ops::RangeInclusive<i64>,
 ) -> bool {
     for num in first_range {
-        if !second_range.contains(&num) {
-            return false;
+        if second_range.contains(&num) {
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 fn range_included_two_ways(
