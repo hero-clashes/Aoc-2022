@@ -53,9 +53,13 @@ fn main() {
         let number_of_items = i32::from_str_radix(items.get(1).unwrap().as_str(), 10).unwrap();
         let from_stack = i32::from_str_radix(items.get(2).unwrap().as_str(), 10).unwrap();
         let to_stack = i32::from_str_radix(items.get(3).unwrap().as_str(), 10).unwrap();
+        let mut temp = VecDeque::new();
         for i in 0..number_of_items {
             let item = stacks[(from_stack - 1) as usize].pop_front().unwrap();
-            stacks[(to_stack - 1) as usize].push_front(item);
+            temp.push_front(item);
+        }
+        for i in 0..number_of_items{
+            stacks[(to_stack - 1) as usize].push_front(temp.pop_front().unwrap());
         }
     }
 
