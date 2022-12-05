@@ -1,43 +1,66 @@
+use core::num;
 use itertools::Itertools;
 use regex::Regex;
-use std::{collections::HashSet, fs, ops::RangeToInclusive};
-
-fn range_included(
-    first_range: std::ops::RangeInclusive<i64>,
-    second_range: std::ops::RangeInclusive<i64>,
-) -> bool {
-    for num in first_range {
-        if second_range.contains(&num) {
-            return true;
-        }
-    }
-    return false;
-}
-
-fn range_included_two_ways(
-    first_range: std::ops::RangeInclusive<i64>,
-    second_range: std::ops::RangeInclusive<i64>,
-) -> bool {
-    let first = range_included(first_range.clone(), second_range.clone());
-
-    let second = range_included(second_range, first_range);
-
-    first || second
-}
+use std::{
+    collections::{HashSet, VecDeque},
+    fs,
+    ops::RangeToInclusive,
+};
 
 fn main() {
     let contents = fs::read_to_string("input.txt").unwrap();
 
-    let mut sum = 0;
-    let reg = Regex::new(r"(\d+)-(\d+),(\d+)-(\d+)").unwrap();
-    for line in contents.lines() {
-        let matches = reg.captures(line).unwrap();
-        let first_range = i64::from_str_radix(matches.get(1).unwrap().as_str(), 10).unwrap()
-            ..=i64::from_str_radix(matches.get(2).unwrap().as_str(), 10).unwrap();
-        let second_range = i64::from_str_radix(matches.get(3).unwrap().as_str(), 10).unwrap()
-            ..=i64::from_str_radix(matches.get(4).unwrap().as_str(), 10).unwrap();
-        sum += range_included_two_ways(first_range, second_range) as i64;
+    let mut crates_on_top = String::new();
+    let mut number_of_stacks = 0;
+    let mut number_of_lines = 0;
+    for (index, line) in contents.lines().enumerate() {
+        if line.starts_with(" 1") {
+            let r = Regex::new(r"(\d+)\s+$").unwrap();
+            let iter = r.captures(&line).unwrap();
+
+            number_of_stacks =
+                i32::from_str_radix(iter.get(iter.len() - 1).unwrap().as_str(), 10).unwrap();
+            number_of_lines = index;
+            break;
+        }
     }
 
-    println!("{sum}");
+    let mut stacks: Vec<VecDeque<char>> = Vec::new();
+    for i in 0..number_of_stacks {
+        stacks.push(VecDeque::new());
+    }
+
+    let lines = contents.lines().collect_vec();
+    for line in &lines[0..number_of_lines] {
+        for i in 0..number_of_stacks {
+            if i == 0 {
+                let curr = line.chars().nth(1).unwrap();
+                if curr != ' ' {
+                    stacks[i as usize].push_back(curr);
+                }
+            } else {
+                let curr = line.chars().nth((1 + (4 * i)) as usize).unwrap();
+                if curr != ' ' {
+                    stacks[i as usize].push_back(curr);
+                }
+            }
+        }
+    }
+
+    for line in &lines[number_of_lines + 2..] {
+        let reg = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
+        let items = reg.captures(&line).unwrap();
+        let number_of_items = i32::from_str_radix(items.get(1).unwrap().as_str(), 10).unwrap();
+        let from_stack = i32::from_str_radix(items.get(2).unwrap().as_str(), 10).unwrap();
+        let to_stack = i32::from_str_radix(items.get(3).unwrap().as_str(), 10).unwrap();
+        for i in 0..number_of_items {
+            let item = stacks[(from_stack - 1) as usize].pop_front().unwrap();
+            stacks[(to_stack - 1) as usize].push_front(item);
+        }
+    }
+
+    for stack in stacks {
+        crates_on_top.push(*stack.front().unwrap());
+    }
+    println!("{crates_on_top}");
 }
