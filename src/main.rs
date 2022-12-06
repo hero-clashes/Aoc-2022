@@ -14,13 +14,13 @@ fn main() {
     'outer_loop: for (index,ch) in contents.chars().enumerate(){
         let mut set = HashSet::new();
 
-        for i in index..index + 4{
+        for i in index..index + 14{
             let ch2 = contents.chars().nth(i).unwrap();
             if !set.insert(ch2){
                 continue 'outer_loop;
             }
         }
-        choosen_index = index + 4;
+        choosen_index = index + 14;
         break;
     }
 
