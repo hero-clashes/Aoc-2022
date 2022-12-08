@@ -8,20 +8,30 @@ enum Leaf {
     Dir(String, Vec<Leaf>),
     File(String, isize),
 }
-
-fn find_sum(leaf: &Leaf,score: &mut isize) ->isize{
+fn find_size(leaf: &Leaf,size_needed: isize,size_of_choosen: &mut isize) ->isize {
     match leaf {
         Leaf::Dir(_, childs) => {
             let mut sum = 0;
             for child in childs {
-                sum += find_sum(child,score);
+                sum += find_size(child,size_needed,size_of_choosen);
             }
-            if sum <= 100000 {
-                *score += sum;
-                sum
-            }else {
-                sum
+            if sum >= size_needed && sum < *size_of_choosen{
+                *size_of_choosen = sum;
             }
+            sum
+        }
+        Leaf::File(_, size) => *size,
+    }
+}
+
+fn find_sum(leaf: &Leaf) ->isize{
+    match leaf {
+        Leaf::Dir(_, childs) => {
+            let mut sum = 0;
+            for child in childs {
+                sum += find_sum(child);
+            }
+            sum
         }
         Leaf::File(_, size) => *size,
     }
@@ -43,10 +53,14 @@ fn main() {
 
     dbg!(&root);
 
-    let mut sum = 0;
-    find_sum(&root, &mut sum);
+    let mut sum = find_sum(&root);
+    let space_left = 70000000 - sum;
+    let space_needed = 30000000 - space_left;
 
-    println!("{sum}");
+    let mut size_of_choosen = 9999999999;
+    find_size(&root,space_needed,&mut size_of_choosen);
+
+    println!("{size_of_choosen}");
 }
 
 fn parse_structure(
