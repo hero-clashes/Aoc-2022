@@ -1,85 +1,62 @@
 use array2d::Array2D;
+use core::num;
 use regex::Regex;
+use std::collections::HashSet;
 use std::fs;
 use std::iter::Peekable;
 use std::str::Lines;
 
+fn dest(a: (i32, i32), b: (i32, i32)) -> i32 {
+    (a.0 - b.0).abs() + (a.1 - b.1).abs()
+    // (((a.0 - b.0).pow(2) + (a.1 - b.1).pow(2)) as f32).sqrt() as f32
+}
 fn main() {
     let contents = fs::read_to_string("input.txt").unwrap();
 
-    let mut matrix = Array2D::filled_with(
-        0,
-        contents.lines().count(),
-        contents.lines().nth(0).unwrap().len(),
-    );
+    let mut visted_set = HashSet::new();
 
+    let mut current_pos = (0, 0);
+    let mut tail_pos = current_pos;
+    visted_set.insert(current_pos);
 
-    for (row, line) in contents.lines().enumerate() {
-        for (column, ch) in line.chars().enumerate() {
-            matrix.set(row, column, ch.to_digit(10).unwrap());
-        }
-    }
-
-
-    let mut vis_matrix = Array2D::filled_with(0, matrix.num_rows(), matrix.num_rows());
-    for x in 0..vis_matrix.num_columns() {
-        for y in 0..vis_matrix.num_rows() {
-            let hight = matrix[(y, x)];
-            let right_check = matrix.row_iter(y).skip(x + 1).fold((true,0), |mut acc, cur_hight| {
-                if !acc.0 {
-                    return acc;
-                }
-                if *cur_hight >= hight {
-                    acc.0 = false;
+    for line in contents.lines() {
+        match line.split_once(' ') {
+            Some((dir, str)) => {
+                let number: i32 = str.parse().unwrap();
+                let dir = match dir {
+                    "U" => (0, -1),
+                    "D" => (0, 1),
+                    "R" => (1, 0),
+                    "L" => (-1, 0),
+                    _ => todo!(),
                 };
-                acc.1+=1;
-                acc
-            });
-            let mut left_check = matrix.row_iter(y).collect::<Vec<_>>();
-            left_check.resize(x, &0);
-            left_check.reverse();
-            let left_check = left_check.iter().fold((true,0), |mut acc, cur_hight| {
-                if !acc.0 {
-                    return acc;
-                }
-                if **cur_hight >= hight {
-                    acc.0 = false;
-                };
-                acc.1+= 1;
-                acc
-            });
-            let down_check = matrix
-                .column_iter(x)
-                .skip(y + 1)
-                .fold((true,0), |mut acc, cur_hight| {
-                    if !acc.0 {
-                        return acc;
+                'losop: for i in 0..number {
+                    let new_pos = (current_pos.0 + dir.0, current_pos.1 + dir.1);
+
+                    let mut vec = Vec::new();
+                    for dx in [-1, 0, 1] {
+                        for dy in [-1, 0, 1] {
+                            let pos = (tail_pos.0 + dx, tail_pos.1 + dy);
+                            if new_pos == pos {
+                                current_pos = new_pos;
+                                continue 'losop;
+                            }
+                            vec.push((pos, dest(new_pos, pos)));
+                        }
                     }
-                    if *cur_hight >= hight {
-                        acc.0 = false;
-                    };
-                    acc.1+= 1;
-                    acc
-                });
-            let mut up_check = matrix.column_iter(x).collect::<Vec<_>>();
-            up_check.resize(y, &0);
-            up_check.reverse();
-            let up_check = up_check.iter().fold((true,0), |mut acc, cur_hight| {
-                if !acc.0 {
-                    return acc;
+                    vec.sort_by(|a, b| a.1.cmp(&b.1));
+                    let tail_pos_new = vec[0];
+                    tail_pos = tail_pos_new.0;
+                    visted_set.insert(tail_pos_new.0);
+
+                    current_pos = new_pos;
                 }
-                if **cur_hight >= hight {
-                    acc.0 = false;
-                };
-                acc.1+= 1;
-                acc
-            });
-            vis_matrix[(y, x)] = right_check.1 * left_check.1 * up_check.1 * down_check.1;
+            }
+            Some((&_, _)) => todo!(),
+            None => panic!("shouldn't happens"),
         }
     }
-
-
-    let score = vis_matrix.elements_column_major_iter().max().unwrap();
-
-    println!("{score}")
+   
+    
+    println!("{}", visted_set.len());
 }
