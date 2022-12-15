@@ -13,33 +13,54 @@ fn dest(a: (i32, i32), b: (i32, i32)) -> i32 {
 fn main() {
     let contents = fs::read_to_string("input.txt").unwrap();
 
-    let mut sum = 0;
+    let mut output = String::new();
+
+     
     let mut X = 1;
-    let mut current_cycle = 1;
-    let check = vec![20, 60, 100, 140, 180, 220];
+    let mut current_cycle = 0;
     for line in contents.lines() {
         match line.split_once(" ") {
             Some(("addx", str)) => {
-                if check.contains(&current_cycle) {
-                    sum += X * current_cycle;
+              
+                if [X-1, X, X+1].contains(&((current_cycle%40))){
+                    output.push('#');
+                } else {
+                    output.push('.');
                 }
                 current_cycle += 1;
-                if check.contains(&current_cycle) {
-                    sum += X * current_cycle;
+                if current_cycle%40 == 0{
+                    output.push('\n');
+                }
+                
+                if [X-1, X, X+1].contains(&((current_cycle%40))){
+                    output.push('#');
+                } else {
+                    output.push('.');
                 }
                 current_cycle += 1;
+                if current_cycle%40 == 0{
+                    output.push('\n');
+                }
+
                 X += str.parse::<i32>().unwrap();
             }
             Some((&_, _)) => todo!(),
             None => {
                 if line == "noop" {
-                    if check.contains(&current_cycle) {
-                        sum += X * current_cycle;
+                    
+                    if [X-1, X, X+1].contains(&((current_cycle%40))){
+                        output.push('#');
+                    } else {
+                        output.push('.');
                     }
                     current_cycle += 1;
+                    if current_cycle%40 == 0{
+                        output.push('\n');
+                    }
+
                 }
             }
         }
     }
-    println!("{}", sum);
+    println!("{}", output);
 }
