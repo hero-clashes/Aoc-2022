@@ -15,9 +15,8 @@ fn main() {
 
     let mut visted_set = HashSet::new();
 
-    let mut current_pos = (0, 0);
-    let mut tail_pos = current_pos;
-    visted_set.insert(current_pos);
+    let mut tail_poss = vec![(0, 0); 10];
+    visted_set.insert((0, 0));
 
     for line in contents.lines() {
         match line.split_once(' ') {
@@ -30,33 +29,30 @@ fn main() {
                     "L" => (-1, 0),
                     _ => todo!(),
                 };
-                'losop: for i in 0..number {
-                    let new_pos = (current_pos.0 + dir.0, current_pos.1 + dir.1);
-
-                    let mut vec = Vec::new();
-                    for dx in [-1, 0, 1] {
-                        for dy in [-1, 0, 1] {
-                            let pos = (tail_pos.0 + dx, tail_pos.1 + dy);
-                            if new_pos == pos {
-                                current_pos = new_pos;
-                                continue 'losop;
-                            }
-                            vec.push((pos, dest(new_pos, pos)));
+                for _i in 0..number {
+                    let new_pos = (tail_poss[0].0 + dir.0, tail_poss[0].1 + dir.1);
+                    // for (i, mut tail_pos) in tail_poss.iter_mut().enumerate() {
+                    tail_poss[0] = new_pos;
+                    'losop: for i in 1..tail_poss.len() {
+                        let mut tail_pos = &tail_poss[i];
+                        let dir_vic = (
+                            tail_poss[i - 1].0 - tail_pos.0,
+                            tail_poss[i - 1].1 - tail_pos.1,
+                        );
+                        if (dir_vic.0 as i32).abs() <= 1 && (dir_vic.1 as i32).abs() <= 1 {
+                            continue;
                         }
-                    }
-                    vec.sort_by(|a, b| a.1.cmp(&b.1));
-                    let tail_pos_new = vec[0];
-                    tail_pos = tail_pos_new.0;
-                    visted_set.insert(tail_pos_new.0);
+                        let mut tail_pos_new = (tail_pos.0 + dir_vic.0.clamp(-1, 1), tail_pos.1 + dir_vic.1.clamp(-1, 1));
 
-                    current_pos = new_pos;
+                        tail_poss[i] = tail_pos_new;
+                    }
+                    visted_set.insert(*tail_poss.last().unwrap());
                 }
             }
             Some((&_, _)) => todo!(),
             None => panic!("shouldn't happens"),
         }
     }
-   
-    
+
     println!("{}", visted_set.len());
 }
