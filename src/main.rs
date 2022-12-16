@@ -17,7 +17,7 @@ struct operation {
 }
 
 impl operation {
-    fn compute(&self, old: i32) -> i32 {
+    fn compute(&self, old: u64) -> u64 {
         let lhs_val = match self.lhs.as_str() {
             "old" => old,
             str => str.parse().unwrap(),
@@ -42,12 +42,12 @@ impl operation {
     regex = r"Test: divisible by (\d+)    If true: throw to monkey (\d+)    If false: throw to monkey (\d+)"
 )]
 struct test {
-    divisible_by: i32,
-    true_brench: i32,
-    false_brench: i32,
+    divisible_by: u64,
+    true_brench: u64,
+    false_brench: u64,
 }
 impl test {
-    fn item_go_to(&self, worry: i32) -> i32 {
+    fn item_go_to(&self, worry: u64) -> u64 {
         if worry % self.divisible_by == 0 {
             self.true_brench
         } else {
@@ -58,17 +58,17 @@ impl test {
 #[derive(Inpt, Default, Debug, Clone)]
 
 struct Monkey {
-    items: Vec<i32>,
+    items: Vec<u64>,
     oper: operation,
     test: test,
-    number_of_items_inspected: i32
+    number_of_items_inspected: u64
 }
 
 #[derive(Inpt, Default, Debug)]
 #[inpt(regex = r"Starting items:")]
 struct items {
     #[inpt(after)]
-    i: Vec<i32>,
+    i: Vec<u64>,
 }
 fn main() {
     let contents = fs::read_to_string("input.txt").unwrap();
@@ -85,9 +85,9 @@ fn main() {
         Monkeys.push(monk);
     }
 
-    const number_of_rounds: i32 = 20;
+    const number_of_rounds: u64 = 10000;
 
-    for _ in 0..number_of_rounds {
+    for round in 1..=number_of_rounds {
         let s = 4 + Monkeys[0].test.false_brench;
         for i in 0..Monkeys.len() {
             let current_monkey = Monkeys[i].clone();
@@ -95,7 +95,7 @@ fn main() {
                 Monkeys[i].number_of_items_inspected+= 1;
                 let mut worry = *item;
                 worry = current_monkey.oper.compute(worry);
-                worry /= 3;
+                worry %= Monkeys.iter().map(|m| m.test.divisible_by).product::<u64>();
 
                 Monkeys[current_monkey.test.item_go_to(worry) as usize]
                     .items
