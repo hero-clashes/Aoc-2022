@@ -1,113 +1,102 @@
 use array2d::Array2D;
 use core::num;
+use std::ops::ControlFlow;
 use inpt::{inpt, Inpt};
 use itertools::Itertools;
+use pathfinding::directed::astar;
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::iter::Peekable;
 use std::str::Lines;
 
-#[derive(Inpt, Default, Debug, Clone)]
-#[inpt(regex = r"Operation: new = (.+) (.) (.+)")]
-struct operation {
-    lhs: String,
-    op: String,
-    rhs: String,
+#[derive(Clone, Debug)]
+enum tile {
+    elevation(i32),
 }
 
-impl operation {
-    fn compute(&self, old: u64) -> u64 {
-        let lhs_val = match self.lhs.as_str() {
-            "old" => old,
-            str => str.parse().unwrap(),
-        };
+#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy)]
+struct grid_loc(i32, i32);
 
-        let rhs_val = match self.rhs.as_str() {
-            "old" => old,
-            str => str.parse().unwrap(),
-        };
-
-        match self.op.as_str() {
-            "*" => lhs_val * rhs_val,
-            "+" => lhs_val + rhs_val,
-            "-" => lhs_val - rhs_val,
-            "/" => lhs_val / rhs_val,
-            _ => todo!()
-        }
-    }
-}
-#[derive(Inpt, Default, Debug, Clone)]
-#[inpt(
-    regex = r"Test: divisible by (\d+)    If true: throw to monkey (\d+)    If false: throw to monkey (\d+)"
-)]
-struct test {
-    divisible_by: u64,
-    true_brench: u64,
-    false_brench: u64,
-}
-impl test {
-    fn item_go_to(&self, worry: u64) -> u64 {
-        if worry % self.divisible_by == 0 {
-            self.true_brench
-        } else {
-            self.false_brench
-        }
-    }
-}
-#[derive(Inpt, Default, Debug, Clone)]
-
-struct Monkey {
-    items: Vec<u64>,
-    oper: operation,
-    test: test,
-    number_of_items_inspected: u64
-}
-
-#[derive(Inpt, Default, Debug)]
-#[inpt(regex = r"Starting items:")]
-struct items {
-    #[inpt(after)]
-    i: Vec<u64>,
-}
 fn main() {
     let contents = fs::read_to_string("input.txt").unwrap();
+    let x_width = contents.lines().nth(0).unwrap().len();
+    let y_hight = contents.lines().count();
+    let mut matrix = vec![vec![tile::elevation(0);y_hight]; x_width];
+    let mut start = grid_loc::default();
+    let mut goal = grid_loc::default();
+    for (row, line) in contents.lines().enumerate() {
+        for (column, ch) in line.chars().enumerate() {
+            if ch == 'S' {
+                start = grid_loc(column as i32, row as i32);
 
-    let mut Monkeys = Vec::new();
+                matrix[column][row] = tile::elevation(('a' as i32 - 'a' as i32) + 1);
+            } else if ch == 'E' {
+                goal = grid_loc(column as i32, row as i32);
 
-    for ch in &contents.lines().chunks(7) {
-        let (f, second, third, fourth, fifth, sixth, s) = ch.collect_tuple().unwrap();
-        let mut monk = Monkey::default();
-        monk.items = inpt::<items>(second).unwrap().i;
-        monk.oper = inpt(third).unwrap();
-        monk.test = inpt(&(fourth.to_string() + &fifth.to_string() + &sixth.to_string())).unwrap();
-
-        Monkeys.push(monk);
-    }
-
-    const number_of_rounds: u64 = 10000;
-
-    for round in 1..=number_of_rounds {
-        let s = 4 + Monkeys[0].test.false_brench;
-        for i in 0..Monkeys.len() {
-            let current_monkey = Monkeys[i].clone();
-            for item in &current_monkey.items {
-                Monkeys[i].number_of_items_inspected+= 1;
-                let mut worry = *item;
-                worry = current_monkey.oper.compute(worry);
-                worry %= Monkeys.iter().map(|m| m.test.divisible_by).product::<u64>();
-
-                Monkeys[current_monkey.test.item_go_to(worry) as usize]
-                    .items
-                    .push(worry);
+                matrix[column][row] = tile::elevation(('z' as i32 - 'a' as i32) + 1);
+            } else {
+                let elev = (ch as i32 - 'a' as i32) + 1;
+                matrix[column][row] = tile::elevation(elev);
             }
-
-            Monkeys[i].items.clear();
         }
     }
 
-    Monkeys.sort_by(|a,b| a.number_of_items_inspected.cmp(&b.number_of_items_inspected));
-    Monkeys.reverse();
-    let score = Monkeys[0].number_of_items_inspected * Monkeys[1].number_of_items_inspected;
-    println!("{}",score);
+    let path = astar::astar(
+        &start,
+        |current| {
+            let mut output = Vec::new();
+            let hight = match matrix[current.0 as usize][current.1 as usize] {
+                tile::elevation(s) => s,
+            };
+            for dx in [-1, 1] {
+                let x = current.0 + dx;
+                let y = current.1;
+                if let ControlFlow::Break(_) = fun_name(x, x_width, y, y_hight, &matrix, &mut output, hight) {
+                    continue;
+                }
+            }
+            for dy in [-1, 1] {
+                let x = current.0;
+                let y = current.1 + dy;
+                if let ControlFlow::Break(_) = fun_name(x, x_width, y, y_hight, &matrix, &mut output, hight) {
+                    continue;
+                }
+            }
+            return output;
+        },
+        |a| return (a.0 - goal.0).abs() + (a.1 - goal.1).abs(),
+        |a| *a == goal,
+    ).unwrap();
+    let mut step = 0;
+    for y in 0..y_hight{
+        for x in 0..x_width{
+            match path.0.iter().position(|&r| r == grid_loc(x as i32,y as i32)){
+                Some(i) =>  print!("<{}>",i),
+                None => print!("<  >"),
+            }
+        };   
+        print!("\n");     
+    }
+    
+    println!("{}", path.1);
+}
+
+fn fun_name(x: i32, x_width: usize, y: i32, y_hight: usize, matrix: &Vec<Vec<tile>>, output: &mut Vec<(grid_loc, i32)>, hight: i32) -> ControlFlow<()> {
+    if x as usize >= x_width
+        || y as usize >=y_hight
+        || x < 0
+        || y < 0
+    {
+        return ControlFlow::Break(());
+    }
+    match matrix[x as usize][y as usize] {
+        tile::elevation(current_h) => {
+            let dif = current_h - hight;
+            if dif <= 1 {
+                output.push((grid_loc(x, y), 1))
+            }
+        }
+    }
+    ControlFlow::Continue(())
 }
